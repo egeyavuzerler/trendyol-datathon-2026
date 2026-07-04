@@ -1,0 +1,20 @@
+# Veri dosyaları (Kaggle'dan indirilebilir, repoya dahil edilmiyor)
+data/
+*.csv
+*.zip
+
+# Model/vectorizer dosyaları (büyük olabilir, isteğe bağlı hariç tutuldu)
+*.joblib
+*.npz
+lgbm_model.txt
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+
+# Ortam
+.env
