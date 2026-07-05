@@ -8,10 +8,10 @@ DATA_DIR = "data"
 random.seed(42)
 np.random.seed(42)
 
-TOP_K = 50            # her terim için bakılacak en yakın ürün sayısı
-SKIP_TOP = 10         # yanlış-negatif riskini azaltmak için atlanan en tepe sonuç sayısı
+TOP_K = 150           # her terim için bakılacak en yakın ürün sayısı (50 -> 150, daha çeşitli hard negative havuzu)
+SKIP_TOP = 15         # yanlış-negatif riskini azaltmak için atlanan en tepe sonuç sayısı (10 -> 15, daha geniş havuzla orantılı)
 NEG_MULTIPLIER = 4     # HER POZİTİF için üretilecek negatif sayısı (1:4 oranı)
-HARD_FRAC = 0.5        # negatiflerin yüzde kaçı hard negative (11-50. sıradan)
+HARD_FRAC = 0.5        # negatiflerin yüzde kaçı hard negative (15-150. sıradan)
 SAME_CAT_FRAC = 0.25   # yüzde kaçı aynı kategoriden
 RANDOM_FRAC = 0.25     # yüzde kaçı tam rastgele
 BATCH_SIZE = 300       # bellek/performans dengesi için terimleri batch halinde işle

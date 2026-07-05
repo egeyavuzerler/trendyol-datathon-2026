@@ -73,9 +73,11 @@ for chunk in pd.read_csv(f"{DATA_DIR}/items.csv", chunksize=CHUNK_SIZE):
 
     # --- Katman 2: ham metin bloğu ---
     chunk["raw_text"] = chunk.apply(build_raw_text, axis=1)
+    # Alan-bazı (field-level) skorlama için attributes'ın ham halini de ayrı sakla
+    chunk["attributes_raw"] = chunk["attributes"].fillna("")
 
     # Çıktıya yazılacak kolonlar
-    out_cols = ["item_id", "title", "category", "brand", "gender", "age_group", "raw_text"] + list(TOP_KEYS_SLUG.values())
+    out_cols = ["item_id", "title", "category", "brand", "gender", "age_group", "raw_text", "attributes_raw"] + list(TOP_KEYS_SLUG.values())
     chunk_out = chunk[out_cols]
 
     chunk_out.to_csv(
