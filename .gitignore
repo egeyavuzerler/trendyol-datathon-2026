@@ -3,10 +3,11 @@ data/
 *.csv
 *.zip
 
-# Model/vectorizer dosyaları (büyük olabilir, isteğe bağlı hariç tutuldu)
+# Model/vectorizer/embedding dosyaları (büyük, repoya dahil edilmiyor)
 *.joblib
 *.npz
-lgbm_model.txt
+*.npy
+lgbm_*.txt
 
 # Python
 __pycache__/
