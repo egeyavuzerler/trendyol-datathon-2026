@@ -8,6 +8,8 @@ data/
 *.npz
 *.npy
 lgbm_*.txt
+cross_encoder_model/
+cross_encoder_checkpoints/
 
 # Python
 __pycache__/
