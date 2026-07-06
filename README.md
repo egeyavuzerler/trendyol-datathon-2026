@@ -136,7 +136,7 @@ En önemli feature'lar (v3, LightGBM): `tfidf_cosine` > `bm25_score` > `tfidf_ca
 | 20 | `add_stacking_feature.py` | `ce_prob`'u train/submission feature setlerine ekler | ✅ Tamamlandı |
 | 21 | `train_v4_stacked.py` | LightGBM'i `ce_prob` dahil yeniden eğitir, submission varyantları üretir | ✅ Tamamlandı — OOF 0.7766, public LB 0.836 (saf cross-encoder'dan kötü) |
 | - | Cross-encoder threshold interpolasyonu (rate20/rate30 ile 23-26 aralığını netleştirme) | Kısmen yapıldı — günlük limit doldu, rate20 yarına ertelendi | - |
-| - | 2. epoch denemesi (BERTurk) | Çalışıyor (~4.5 saat, checkpoint'ten devam) | - |
+| - | 2. epoch denemesi (BERTurk) | ✅ Tamamlandı — internal val macro F1 0.8688 (1. epoch'un 0.8697'sinden farksız/hafif düşük, plateau işareti, henüz public LB'de test edilmedi) |
 
 
 ## Kaggle'a Yükleme
