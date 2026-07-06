@@ -62,7 +62,28 @@ unzip trendyol-e-ticaret-yarismasi-2026-kaggle.zip -d data
 
 Ara/eski sürümler (`build_train_features.py`, `train_lgbm.py`, `train_lgbm_cv.py`, `train_final_and_predict.py`) karşılaştırma amacıyla repoda tutulmuştur.
 
-## Kaggle'a Yükleme
+### 5) Teşhis (CV-Leaderboard Uyuşmazlığı) ve Cross-Encoder (v4)
+
+İlk Kaggle submission'ı (v3, OOF macro F1=0.7175) public leaderboard'da sadece **0.65** aldı — belirgin bir CV-LB farkı. Bu fark araştırılmadan yeni model eklenmedi:
+
+| # | Script | Ne yapar | Sonuç |
+|---|--------|----------|-------|
+| 14 | `diagnose_item_leakage.py` | GroupKFold'da item-level leakage olup olmadığını test eder | **Leakage yok** — görülmemiş item'larda skor daha yüksek çıktı |
+| 15 | `diagnose_distribution_shift.py` | Training pozitif/negatif dağılımını submission dağılımıyla karşılaştırır | Submission'ın medyan tfidf_cosine'ı **0.0** — negatif örneklememizden bile daha "kolay" negatifler içeriyor |
+| 16 | `generate_threshold_variants.py` / `generate_single_threshold.py` | Farklı threshold'larda submission dosyaları üretir (leaderboard probing için) | threshold=0.20 (%26.6 relevant) → **public 0.69** (threshold=0.34'ün 0.65'inden çok daha iyi) |
+
+**Sonuç:** Gerçek pozitif oranı bizim varsaydığımız ~%20'den belirgin şekilde yüksek (~%26-30 civarı en iyi sonucu verdi). Ayrıca feature-engineering + GBDT yaklaşımının bir tavana yaklaştığı görüldü.
+
+Bu bulgularla, **BERTurk tabanlı cross-encoder** yaklaşımına geçildi — query ve ürün metnini ayrı ayrı vektörleyip karşılaştırmak yerine, ikisini birlikte transformer'a verip uçtan uca fine-tune etme:
+
+| # | Script | Ne yapar | Çıktı |
+|---|--------|----------|-------|
+| 17 | `train_cross_encoder.py` | `dbmdz/bert-base-turkish-cased` modelini query+ürün metni çiftleri üzerinde fine-tune eder. Negatif karışımı, diagnostic bulgusuna göre düşük-benzerlikli (kolay) örneklere ağırlıklı (%50 low/%30 mid/%20 high tfidf_cosine kovaları) | `data/cross_encoder_model/` |
+| 18 | `predict_cross_encoder_submission.py` | Fine-tune edilmiş modeli submission_pairs.csv üzerinde optimize edilmiş batch inference ile çalıştırır, birden fazla threshold için submission dosyası üretir | `data/cross_encoder_submission_probs.csv`, `data/submission_ce_*.csv` |
+
+**Cross-encoder sonucu:** Internal validation macro F1 = **0.8697** — LightGBM+feature-engineering yaklaşımından (0.7175 OOF) çok büyük bir sıçrama. Bu, literatürdeki bulguyu doğruluyor: cross-encoder mimarisi, ayrık benzerlik skorları + GBDT kombinasyonundan search-relevance görevlerinde sistematik olarak daha güçlü.
+
+
 
 ```bash
 python -m kaggle competitions submit -c trendyol-e-ticaret-yarismasi-2026-kaggle -f data/submission_v3.csv -m "Açıklama"
@@ -78,17 +99,29 @@ python -m kaggle competitions submit -c trendyol-e-ticaret-yarismasi-2026-kaggle
 - **Validation:** Terim bazlı 5-fold GroupKFold (satır bazlı değil) — çünkü submission'daki terimler training'de hiç görülmemiş, validation skorunun gerçek cold-start performansını yansıtması için gerekli. Nihai submission, 5 fold modelinin ortalaması (ensemble).
 - **Hiperparametre optimizasyonu:** Optuna ile 3-fold CV üzerinde 40 deneme (num_leaves, learning_rate, feature/bagging_fraction, min_child_samples, L1/L2 regularizasyon).
 
-## Güncel Sonuç (v3)
+## Güncel Sonuç
 
-OOF (out-of-fold) macro F1: **0.7175** (threshold = 0.34)
+**v4 (Cross-Encoder, BERTurk):** Internal validation macro F1 = **0.8697**
 
-En önemli feature'lar: `tfidf_cosine` > `bm25_score` > `tfidf_category_cosine` > `brand_in_query` > `word_overlap_ratio` > ... > `semantic_cosine`
+**v3 (Feature-engineering + LightGBM):** OOF macro F1 = 0.7175, ancak public LB = 0.65 (CV-LB uyuşmazlığı — bkz. teşhis bölümü)
+
+En önemli feature'lar (v3, LightGBM): `tfidf_cosine` > `bm25_score` > `tfidf_category_cosine` > `brand_in_query` > `word_overlap_ratio` > ... > `semantic_cosine`
 
 ### Sürüm geçmişi
 
-| Sürüm | Açıklama | OOF Macro F1 |
+| Sürüm | Açıklama | Skor |
 |---|---|---|
-| v1 | TF-IDF cosine + basit eşleşme feature'ları, tek train/val split | 0.7204 (tek split, karşılaştırılabilir değil) |
-| v2 | + BM25, alan-bazı TF-IDF, genişletilmiş negatif havuzu, 5-fold CV | 0.7165 |
-| v2 + Optuna | Hiperparametre optimizasyonu | 0.7165 |
-| v3 | + Semantik embedding (multilingual sentence-transformer) | **0.7175** |
+| v1 | TF-IDF cosine + basit eşleşme feature'ları, tek train/val split | OOF 0.7204 (tek split) |
+| v2 | + BM25, alan-bazı TF-IDF, genişletilmiş negatif havuzu, 5-fold CV | OOF 0.7165 |
+| v2 + Optuna | Hiperparametre optimizasyonu | OOF 0.7165 |
+| v3 | + Semantik embedding (multilingual sentence-transformer) | OOF 0.7175 / **public LB 0.65** (threshold=0.34) |
+| v3 + threshold probing | Aynı model, leaderboard'dan kalibre edilmiş threshold (0.20) | **public LB 0.69** |
+| v4 | BERTurk cross-encoder (query+ürün metni birlikte fine-tune), diagnostic-bilgili negatif karışımı | internal val macro F1 **0.8697** |
+
+### Öğrenilen Dersler
+
+- **CV skoru ile public LB skoru arasında büyük fark olabilir** — kendi ürettiğimiz sentetik negatiflerle eğitip değerlendirmek, gerçek test dağılımını yansıtmayabilir. Model eklemeden önce bu farkı teşhis etmek kritik.
+- **Threshold kalibrasyonu, macro F1'de model kalitesi kadar önemli olabilir** — aynı model, farklı threshold'larla 0.65 ile 0.69 arası skor verdi.
+- **Cross-encoder (uçtan uca fine-tune edilmiş transformer), feature-engineering + GBDT'den ciddi şekilde daha güçlü** — bu, arama-relevance literatüründe (MS MARCO, Amazon ESCI) tekrar tekrar doğrulanan bir bulgu.
+
+## Kaggle'a Yükleme
