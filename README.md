@@ -119,14 +119,14 @@ En önemli feature'lar (v3, LightGBM): `tfidf_cosine` > `bm25_score` > `tfidf_ca
 | v4 | BERTurk cross-encoder (1 epoch), diagnostic-bilgili negatif karışımı | internal val macro F1 0.8697 |
 | **v4 + threshold probing** | Cross-encoder, rate=%23-26 relevant | **public LB 0.850 (en iyi)** |
 | v4 + LightGBM ensemble (rank-blend, 0.7/0.3) | Cross-encoder + LightGBM v3 rank ortalaması | public LB 0.833 (daha kötü — rank-blend sinyali sulandırdı) |
-| v4 + LightGBM stacking (ce_prob feature olarak) | Cross-encoder skorunu LightGBM'e feature olarak ekleme | OOF macro F1 0.7766 (henüz public LB'de test edilmedi — dikkatli olunmalı, cross-encoder training verisiyle eğitildiği için hafif sızıntı riski var) |
+| v4 + LightGBM stacking (ce_prob feature olarak) | Cross-encoder skorunu LightGBM'e feature olarak ekleme | OOF macro F1 0.7766, **public LB 0.836** (yine saf cross-encoder'ın 0.850'sinin altında) |
 
 ### Öğrenilen Dersler
 
 - **CV skoru ile public LB skoru arasında büyük fark olabilir** — kendi ürettiğimiz sentetik negatiflerle eğitip değerlendirmek, gerçek test dağılımını yansıtmayabilir. Model eklemeden önce bu farkı teşhis etmek kritik.
 - **Threshold kalibrasyonu, macro F1'de model kalitesi kadar önemli olabilir** — aynı model, farklı threshold'larla 0.65 ile 0.69 arası (v3), 0.833 ile 0.850 arası (v4) skor verdi.
 - **Cross-encoder (uçtan uca fine-tune edilmiş transformer), feature-engineering + GBDT'den ciddi şekilde daha güçlü** — bu, arama-relevance literatüründe (MS MARCO, Amazon ESCI) tekrar tekrar doğrulanan bir bulgu.
-- **Basit rank-blend ensemble her zaman işe yaramıyor** — zayıf modelin sinyali güçlü modelinkini sulandırabilir. Bunun yerine **stacking** (cross-encoder skorunu LightGBM'e ek bir feature olarak vermek) deneniyor, çünkü GBDT bu sinyali diğer feature'larla birlikte nasıl ağırlıklandıracağını öğrenebilir.
+- **Basit rank-blend ensemble her zaman işe yaramıyor** — zayıf modelin sinyali güçlü modelinkini sulandırabilir. Bunun yerine **stacking** (cross-encoder skorunu LightGBM'e ek bir feature olarak vermek) denendi, ancak **o da saf cross-encoder'ı geçemedi** (0.836 vs 0.850) — cross-encoder tek başına bu problem için en güçlü yaklaşım olarak kaldı.
 
 ### Sırada Ne Var
 
@@ -134,11 +134,9 @@ En önemli feature'lar (v3, LightGBM): `tfidf_cosine` > `bm25_score` > `tfidf_ca
 |---|--------|----------|-------|
 | 19 | `predict_cross_encoder_train.py` | Cross-encoder'ı training verisi üzerinde çalıştırıp `ce_prob` feature'ını üretir (stacking için) | ✅ Tamamlandı |
 | 20 | `add_stacking_feature.py` | `ce_prob`'u train/submission feature setlerine ekler | ✅ Tamamlandı |
-| 21 | `train_v4_stacked.py` | LightGBM'i `ce_prob` dahil yeniden eğitir, submission varyantları üretir | ✅ Tamamlandı — OOF 0.7766, henüz public LB'de test edilmedi |
-| - | Stacked model'i temkinli test etme (tek varyant, örn. rate26) | Planlanan | - |
-| - | Cross-encoder threshold interpolasyonu (rate20/rate30 ile 23-26 aralığını netleştirme) | Planlanan | - |
-| - | 2. epoch denemesi (BERTurk) | Planlanan, zaman maliyeti yüksek (~5.5s eğitim + ~8s inference) | - |
-| - | CatBoost/XGBoost ensemble, 10-fold CV | Düşük öncelik — ce_prob zaten LightGBM'de domine ediyor, marjinal getiri beklenir | - |
+| 21 | `train_v4_stacked.py` | LightGBM'i `ce_prob` dahil yeniden eğitir, submission varyantları üretir | ✅ Tamamlandı — OOF 0.7766, public LB 0.836 (saf cross-encoder'dan kötü) |
+| - | Cross-encoder threshold interpolasyonu (rate20/rate30 ile 23-26 aralığını netleştirme) | Kısmen yapıldı — günlük limit doldu, rate20 yarına ertelendi | - |
+| - | 2. epoch denemesi (BERTurk) | Çalışıyor (~4.5 saat, checkpoint'ten devam) | - |
 
 
 ## Kaggle'a Yükleme

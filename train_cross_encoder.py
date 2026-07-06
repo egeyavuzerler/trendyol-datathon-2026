@@ -17,7 +17,7 @@ MODEL_NAME = "dbmdz/bert-base-turkish-cased"
 MAX_LENGTH = 64            # 96 -> 64: çoğu metin kısa, hız için düşürüldü
 NEG_PER_POS_SUBSAMPLE = 2  # BERT eğitimi pahalı olduğu için negatifleri 1:4 -> 1:2'ye düşürüyoruz
 BATCH_SIZE = 32            # 16 -> 32: M5 GPU'sunu daha verimli kullanmak için
-NUM_EPOCHS = 1             # 2 -> 1: 750K satır için genelde yeterli, süreyi yarıya indirir
+NUM_EPOCHS = 1             # kaydedilmiş checkpoint'ten DEVAM ederek 1 epoch daha (toplamda ~2 epoch, ama süre 1 epoch kadar)
 LEARNING_RATE = 2e-5
 
 # Gerçek submission dağılımına yakınsamak için negatif karışımı hedefi:
@@ -134,8 +134,16 @@ val_dataset = PairDataset(val_data["query"].tolist(), val_data["item_text"].toli
 # ============================================================
 # 4) Model ve eğitim
 # ============================================================
-print(f"\nModel yükleniyor: {MODEL_NAME}...")
-model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=2)
+import os
+
+print(f"\nModel yükleniyor...")
+EXISTING_MODEL_PATH = f"{DATA_DIR}/cross_encoder_model"
+if os.path.exists(EXISTING_MODEL_PATH):
+    print(f"Kaydedilmiş fine-tuned model bulundu, DEVAM edilecek: {EXISTING_MODEL_PATH}")
+    model = AutoModelForSequenceClassification.from_pretrained(EXISTING_MODEL_PATH)
+else:
+    print(f"Kaydedilmiş model yok, sıfırdan başlanıyor: {MODEL_NAME}")
+    model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=2)
 
 
 def compute_metrics(eval_pred):
@@ -209,11 +217,11 @@ print(classification_report(y_val, final_preds, target_names=["irrelevant(0)", "
 # ============================================================
 # 6) Modeli kaydet
 # ============================================================
-model.save_pretrained(f"{DATA_DIR}/cross_encoder_model")
-tokenizer.save_pretrained(f"{DATA_DIR}/cross_encoder_model")
-with open(f"{DATA_DIR}/cross_encoder_threshold.txt", "w") as f:
+model.save_pretrained(f"{DATA_DIR}/cross_encoder_model_epoch2")
+tokenizer.save_pretrained(f"{DATA_DIR}/cross_encoder_model_epoch2")
+with open(f"{DATA_DIR}/cross_encoder_threshold_epoch2.txt", "w") as f:
     f.write(str(best_threshold))
 
-print(f"\nModel kaydedildi: {DATA_DIR}/cross_encoder_model")
-print(f"Threshold kaydedildi: {DATA_DIR}/cross_encoder_threshold.txt")
+print(f"\nModel kaydedildi: {DATA_DIR}/cross_encoder_model_epoch2  (1. epoch modeli {DATA_DIR}/cross_encoder_model altında korunuyor)")
+print(f"Threshold kaydedildi: {DATA_DIR}/cross_encoder_threshold_epoch2.txt")
 print(f"\nToplam süre: {time.time()-t0:.1f}s")
