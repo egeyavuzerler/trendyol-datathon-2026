@@ -1,15 +1,44 @@
-# Veri dosyaları (Kaggle'dan indirilebilir, repoya dahil edilmiyor)
-data/
-*.csv
+# ============================================
+# HAM YARIŞMA VERİSİ — asla repoya koyma (Kaggle kural riski + boyut)
+# ============================================
+data/items.csv
+data/terms.csv
+data/training_pairs.csv
+data/submission_pairs.csv
+data/sample_submission.csv
 *.zip
 
-# Model/vectorizer/embedding dosyaları (büyük, repoya dahil edilmiyor)
+# Büyük türetilmiş dosyalar (yeniden üretilebilir, script'ler repoda)
+data/items_features.csv
+data/training_features*.csv
+data/submission_features*.csv
+data/submission_probs.csv
+data/lgbm_v4_submission_probs.csv
+data/ensemble_scores.csv
+data/submission*.csv
+data/cross_encoder_train_probs.csv
+data/cross_encoder_submission_probs.csv
+
+# Model/vectorizer/embedding dosyaları (büyük, Kaggle Dataset'te paylaşılıyor)
 *.joblib
 *.npz
 *.npy
 lgbm_*.txt
+data/lgbm_*.txt
 cross_encoder_model/
+cross_encoder_model_epoch2/
 cross_encoder_checkpoints/
+data/cross_encoder_model/
+data/cross_encoder_model_epoch2/
+data/cross_encoder_checkpoints/
+
+# ============================================
+# İZİN VERİLENLER (küçük, bizim ürettiğimiz, takım için faydalı):
+# data/training_full.csv, data/best_lgbm_params.json, data/best_threshold*.txt,
+# data/cross_encoder_threshold*.txt — bunlar yukarıdaki kurallara takılmaz
+# ============================================
+!data/training_full.csv
+!data/best_lgbm_params.json
 
 # Python
 __pycache__/
